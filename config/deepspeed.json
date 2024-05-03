@@ -1,0 +1,14 @@
+{
+  "zero_allow_untested_optimizer": true,
+  "prescale_gradients": false,
+  "bf16": {
+    "enabled": true
+  },
+  "zero_optimization": {
+    "stage": 3,
+    "contiguous_gradients": false,
+    "allgather_bucket_size": 5e8,
+    "reduce_bucket_size": 5e8,
+    "overlap_comm": true
+  }
+}
