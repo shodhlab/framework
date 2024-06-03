@@ -13,7 +13,7 @@ RUN apt-get install -y rdmacm-utils perftest rdma-core
 RUN apt-get install -y libaio-dev
 RUN pip install --upgrade pip
 RUN pip install gpustat
-
+RUN pip install deepspeed
 
 ### SSH
 RUN mkdir /var/run/sshd && \
@@ -64,7 +64,7 @@ RUN mkdir -p /home/arch/.ssh /job && \
     echo 'export LD_LIBRARY_PATH=/usr/local/lib:/usr/local/mpi/lib:/usr/local/mpi/lib64:$LD_LIBRARY_PATH' >> /home/arch/.bashrc
 
 ### Python packages
-COPY requirements.txt .
+COPY . .
 RUN pip install -r requirements.txt
 
 # Install APEX

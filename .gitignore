@@ -1,0 +1,14 @@
+__pycache__
+
+data/data.pt
+data/vocab.json
+data/rev_vocab.json
+data/*.model
+data/*.vocab
+
+logs/*
+!logs/.gitkeep
+
+model/__pycache__
+
+utils/__pycache__

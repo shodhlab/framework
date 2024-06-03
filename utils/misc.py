@@ -1,17 +1,10 @@
+import os
 import time
 import json
 import string
+from sentencepiece import SentencePieceProcessor
 
 punctuations = string.punctuation
-
-
-def clean_text(text):
-    cleaned_text = []
-    for word in text:
-        word = word.lower()
-        word = "".join([char for char in word if char not in punctuations])
-        cleaned_text.append(word)
-    return cleaned_text
 
 
 def measure_time(start_time=None):
@@ -34,3 +27,20 @@ def load_configs():
     with open("./config/deepspeed.json", "r") as f:
         deepspeed_config = json.load(f)
     return preprocess_config, train_config, deepspeed_config
+
+
+def tokenizer(config):
+    sp = SentencePieceProcessor(
+        os.path.join(config["vocab_dir"], config["tokenizer"]) + ".model"
+    )
+    return sp
+
+
+def vocab(config):
+    vocab = json.load(open(f"{config['vocab_dir']}/vocab.json", "r"))
+    return vocab
+
+
+def rev_vocab(config):
+    rev_vocab = json.load(open(f"{config['vocab_dir']}/rev_vocab.json", "r"))
+    return rev_vocab

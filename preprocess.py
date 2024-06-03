@@ -1,12 +1,8 @@
-import json
 import torch
 import pytorch_lightning as pl
 import torch.utils.data as data
 
 from utils import preprocess
-
-preprocess_config = json.load(open("./config/preprocess.json", "r"))
-train_config = json.load(open("./config/train.json", "r"))
 
 
 class DataModule(pl.LightningDataModule):
@@ -16,11 +12,10 @@ class DataModule(pl.LightningDataModule):
         self.preprocess_config = preprocess_config
 
     def setup(self, stage: str = None):
-        self.data, self.vocab = preprocess(
+        self.data = preprocess(
             self.preprocess_config, self.train_config["sequence_length"]
         )
-
-        self.vocab_size = len(self.vocab) + 1
+        self.vocab_size = self.preprocess_config["vocab_size"]
         self.dataset = data.TensorDataset(self.data[0], self.data[1])
         self.val_frac = self.preprocess_config["val_percent"] / 100
         self.test_frac = self.preprocess_config["test_percent"] / 100
@@ -35,7 +30,9 @@ class DataModule(pl.LightningDataModule):
                 self.val_len,
                 self.test_len,
             ],
-            generator=torch.Generator().manual_seed(42),
+            generator=torch.Generator().manual_seed(
+                self.preprocess_config["random_state"]
+            ),
         )
 
     def train_dataloader(self):

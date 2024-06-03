@@ -1,8 +1,10 @@
 {
-  "input": "./data/input.txt",
   "vocab_dir": "./data",
   "data_dir": "./data",
   "test_percent": 15,
   "val_percent": 15,
-  "random_state": 42
+  "random_state": 42,
+  "vocab_size": 32000,
+  "spm_convergence": 0.9995,
+  "tokenizer": "bpe"
 }
