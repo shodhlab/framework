@@ -3,7 +3,8 @@ import torchmetrics
 import torch.nn as nn
 import pytorch_lightning as pl
 from model.Decoder import Decoder
-from model.Embedding import InputEmbedding
+from model.PositionalEncoding import Learned, RoPE, Cosine
+from model.Loss import ChunkedCrossEntropyLoss, CrossEntropyLoss
 
 
 class Transformer(pl.LightningModule):
@@ -11,27 +12,26 @@ class Transformer(pl.LightningModule):
         super().__init__()
         self.config = config
         self.batchSize = config["batch_size"]
-        self.context = config["sequence_length"]
-        self.embedding = config["embedding_size"]
-        self.heads = config["heads"]
-        self.layers = config["layers"]
-        self.groups = config["groups"]
+        self.contextLength = config["context_length"]
+        self.embeddingDim = config["embedding_dimension"]
+        self.numHeads = config["num_heads"]
+        self.numLayers = config["num_layers"]
+        self.dropout = config["dropout"]
         self.vocabSize = vocabSize
 
-        self.input_embedding = InputEmbedding(
-            self.context, self.vocabSize, self.embedding
-        )
+        self.inputEmbed = nn.Embedding(self.vocabSize, self.embeddingDim)
+        self.pe = RoPE(self.contextLength, self.embeddingDim)
         self.decoder = Decoder(
             self.batchSize,
-            self.context,
-            self.embedding,
-            self.heads,
-            self.layers,
-            self.groups,
+            self.contextLength,
+            self.embeddingDim,
+            self.numHeads,
+            self.numLayers,
+            self.dropout,
         )
-        self.linear = nn.Linear(self.embedding, self.vocabSize)
+        self.linear = nn.Linear(self.embeddingDim, self.vocabSize)
 
-        self.loss_fn = nn.CrossEntropyLoss()
+        self.loss_fn = ChunkedCrossEntropyLoss()
         self.accuracy = torchmetrics.Accuracy(
             task="multiclass", num_classes=self.vocabSize
         )
@@ -44,37 +44,32 @@ class Transformer(pl.LightningModule):
         self.recall = torchmetrics.Recall(task="multiclass", num_classes=self.vocabSize)
 
     def forward(self, x):
-        x = self.input_embedding(x)
+        x = self.inputEmbed(x)
+        x = self.pe(x)
         x = self.decoder(x)
         x = self.linear(x)
         return x
 
-    def training_step(self, batch):
+    def training_step(self, batch, batch_idx):
         x, y = batch
         output = self.forward(x)[:, 0, :]
         loss = self.loss_fn(output, y)
         self.log("loss", loss, prog_bar=True, sync_dist=True)
         return loss
 
-    def validation_step(self, batch):
+    def validation_step(self, batch, batch_idx):
         x, y = batch
         output = self.forward(x)[:, 0, :]
         loss = self.loss_fn(output, y)
         accuracy = self.accuracy(output, y)
-        f1_score = self.f1_score(output, y)
-        precision = self.precision(output, y)
-        recall = self.recall(output, y)
         dict_log = {
             "val_loss": loss,
             "val_accuracy": accuracy,
-            "val_f1_score": f1_score,
-            "val_precision": precision,
-            "val_recall": recall,
         }
         self.log_dict(dict_log, sync_dist=True)
         return loss
 
-    def test_step(self, batch):
+    def test_step(self, batch, batch_idx):
         x, y = batch
         output = self.forward(x)[:, 0, :]
         loss = self.loss_fn(output, y)

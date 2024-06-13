@@ -2,12 +2,42 @@ import math
 import torch
 import torch.nn as nn
 
+class scaledDotProductAttention(nn.Module):
+    def __init__(self, contextLength, embeddingDim, dropout):
+        super(scaledDotProductAttention, self).__init__()
+        self.contextLength = contextLength
+        self.embeddingDim = embeddingDim
+        self.dropout = dropout
+        self.dropoutLayer = nn.Dropout(dropout)
 
-def scaledDotProductAttention(Q, K, V, mask=None):
-    K = K.transpose(-2, -1)
-    scores = torch.matmul(Q, K) / math.sqrt(Q.size(-1))
-    if mask is not None:
-        scores = scores + mask.to(K.device)
-    attention = nn.Softmax(dim=1)(scores).bfloat16()
-    out = torch.matmul(attention, V)
-    return out
+    def forward(self, q, k, v, mask):
+        k = k.transpose(-2, -1)
+        scores = torch.matmul(q, k)
+        scores = scores / math.sqrt(self.embeddingDim)
+        scores = scores + mask.to(scores.dtype).to(scores.device)
+        attention = nn.Softmax(dim=-1)(scores)
+        out = torch.matmul(attention, v)
+        out = self.dropoutLayer(out)
+        return out
+
+
+class additiveAttention(nn.Module):
+    def __init__(self, contextLength, embeddingDim, dropout):
+        super(additiveAttention, self).__init__()
+        self.contextLength = contextLength
+        self.embeddingDim = embeddingDim
+        self.dropout = dropout
+
+        self.queryExpand = nn.Linear(embeddingDim, contextLength)
+        self.keyExpand = nn.Linear(embeddingDim, contextLength)
+        self.dropoutLayer = nn.Dropout(dropout)
+
+    def forward(self, q, k, v, mask):
+        q = self.queryExpand(q)
+        k = self.keyExpand(k)
+        energy = torch.tanh(q + k)
+        energy = energy + mask.to(energy.dtype).to(energy.device)
+        attention = nn.Softmax(dim=-1)(energy)
+        out = torch.matmul(attention, v)
+        out = self.dropoutLayer(out)
+        return out

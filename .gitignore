@@ -12,3 +12,8 @@ logs/*
 model/__pycache__
 
 utils/__pycache__
+
+.pytest_cache
+
+custom/__pycache__
+tests/model/__pycache__

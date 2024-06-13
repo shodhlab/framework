@@ -1,32 +1,36 @@
 import torch.nn as nn
+
 from model.DecoderBlock import DecoderBlock
 
 
 class Decoder(nn.Module):
-    def __init__(self, batchSize, context, embedding, heads, layers, groups):
+    def __init__(
+        self, batchSize, contextLength, embeddingDim, numHeads, numLayers, dropout #here
+    ):
         super(Decoder, self).__init__()
 
         self.batchSize = batchSize
-        self.context = context
-        self.embedding = embedding
-        self.heads = heads
-        self.layers = layers
-        self.groups = groups
+        self.contextLength = contextLength
+        self.embeddingDim = embeddingDim
+        self.numHeads = numHeads
+        self.numLayers = numLayers
+        self.dropout = dropout
+
 
         self.decoderBlocks = nn.ModuleList(
             [
                 DecoderBlock(
                     self.batchSize,
-                    self.context,
-                    self.embedding,
-                    self.heads,
-                    self.groups,
+                    self.contextLength,
+                    self.embeddingDim,
+                    self.numHeads,
+                    self.dropout
                 )
-                for _ in range(self.layers)
+                for _ in range(self.numLayers)
             ]
         )
 
     def forward(self, x):
-        for i in range(self.layers):
-            x = self.decoderBlocks[i](x)
+        for block in self.decoderBlocks:
+            x = block(x)
         return x

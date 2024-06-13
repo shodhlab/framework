@@ -13,7 +13,7 @@ class DataModule(pl.LightningDataModule):
 
     def setup(self, stage: str = None):
         self.data = preprocess(
-            self.preprocess_config, self.train_config["sequence_length"]
+            self.preprocess_config, self.train_config["context_length"]
         )
         self.vocab_size = self.preprocess_config["vocab_size"]
         self.dataset = data.TensorDataset(self.data[0], self.data[1])

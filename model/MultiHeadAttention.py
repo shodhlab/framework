@@ -5,52 +5,51 @@ from model.Attention import scaledDotProductAttention
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, batchSize, context, embedding, heads, groups, mask=False):
+    def __init__(self, batchSize, contextLength, embeddingDim, numHeads, dropout): #here
         super(MultiHeadAttention, self).__init__()
 
+        assert embeddingDim % numHeads == 0
         self.batchSize = batchSize
-        self.context = context
-        self.embedding = embedding
-        self.heads = heads
-        self.groups = groups
-        self.mask = mask
-        self.headDim = embedding // heads
+        self.contextLength = contextLength
+        self.embeddingDim = embeddingDim
+        self.numHeads = numHeads
+        self.dropout = dropout
 
-        assert self.headDim == float(embedding / heads)
+        self.headDim = embeddingDim // numHeads
+        self.mask = torch.triu(torch.ones(contextLength, contextLength), diagonal=1)
+        self.mask = self.mask.masked_fill(self.mask == 1, float(-1e9))
 
-        # number of heads should be divisible by groups
-        assert self.heads % self.groups == 0
-
-        if mask:
-            self.maskVector = torch.ones(self.context, self.context)
-            self.maskVector[self.maskVector.tril(diagonal=0).bool()] = 0
-            self.maskVector = self.maskVector.masked_fill(
-                self.maskVector == 1, float("-inf")
-            )
-
-        self.Q = nn.ModuleList(
-            [nn.Linear(self.embedding, self.headDim) for _ in range(self.heads)]
+        self.Wq = nn.Linear(embeddingDim, embeddingDim, bias=False)
+        self.Wk = nn.Linear(embeddingDim, embeddingDim, bias=False)
+        self.Wv = nn.Linear(embeddingDim, embeddingDim, bias=False)
+        self.Wo = nn.Linear(embeddingDim, embeddingDim, bias=False)
+        self.attention = scaledDotProductAttention(
+            contextLength, self.headDim, self.dropout
         )
-        self.K = nn.ModuleList(
-            [nn.Linear(self.embedding, self.headDim) for _ in range(self.groups)]
-        )
-        self.V = nn.ModuleList(
-            [nn.Linear(self.embedding, self.headDim) for _ in range(self.groups)]
-        )
+
+    def splitHeads(self, x):
+        batch_size, context_length, embedding_dim = x.size()
+        x = x.reshape(batch_size, context_length, self.numHeads, self.headDim)
+        x = x.transpose(1, 2)
+        return x
+
+    def combineHeads(self, x):
+        batch_size, num_heads, context_length, head_dim = x.size()
+        x = x.transpose(1, 2)
+        x = x.reshape(batch_size, context_length, self.embeddingDim)
+        return x
 
     def forward(self, x):
-        out = []
-        per_group = self.heads // self.groups
+        q = self.Wq(x)
+        k = self.Wk(x)
+        v = self.Wv(x)
 
-        for i in range(self.groups):
-            k = self.K[i](x)
-            v = self.V[i](x)
-            for j in range(per_group):
-                q = self.Q[i * per_group + j](x)
-                if self.mask:
-                    out.append(scaledDotProductAttention(q, k, v, self.maskVector))
-                else:
-                    out.append(scaledDotProductAttention(q, k, v))
-        out = torch.cat(out, dim=2)
+        q = self.splitHeads(q)
+        k = self.splitHeads(k)
+        v = self.splitHeads(v)
+
+        out = self.attention(q, k, v, self.mask)
+        out = self.combineHeads(out)
+        out = self.Wo(out)
 
         return out
