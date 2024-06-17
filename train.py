@@ -1,16 +1,15 @@
 import torch
 from model import Transformer
-from config_read import Config
+from config_reader import Config
 from preprocess import DataModule
 from utils.misc import measure_time
-
-# import logging
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.profilers import PyTorchProfiler
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 if __name__ == "__main__":
     torch.set_float32_matmul_precision("high")
@@ -28,6 +27,13 @@ if __name__ == "__main__":
     )
     strategy = DeepSpeedStrategy(config=config.deepspeed)
     dataModule = DataModule(config.train, config.preprocess)
+    checkpoint = ModelCheckpoint(
+        monitor="val_loss",
+        dirpath=f"logs/checkpoints/",
+        filename="best-checkpoint",
+        save_top_k=1,
+        mode="min",
+    )
 
     trainer = Trainer(
         accelerator="auto",
@@ -39,7 +45,7 @@ if __name__ == "__main__":
         strategy=strategy,
         logger=logger,
         profiler=profiler,
-        callbacks=[lr_monitor],
+        callbacks=[lr_monitor, checkpoint],
     )
 
     print(f"[{measure_time(start_time)}]Loading data on {trainer.global_rank}...")

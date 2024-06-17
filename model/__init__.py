@@ -88,8 +88,9 @@ class Transformer(pl.LightningModule):
         return loss
 
     def predict_step(self, x):
-        output = self.forward(x)[:, 0, :]
-        output = torch.argmax(output, dim=1)
+        with torch.no_grad():
+            output = self.forward(x)
+        output = nn.Softmax(dim=2)(output)
         return output
 
     def configure_optimizers(self):

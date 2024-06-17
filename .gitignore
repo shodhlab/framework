@@ -6,8 +6,12 @@ data/rev_vocab.json
 data/*.model
 data/*.vocab
 
-logs/*
-!logs/.gitkeep
+logs/checkpoints/*
+!logs/checkpoints/.gitkeep
+logs/profiler/*
+!logs/profiler/.gitkeep
+logs/transformer/*
+!logs/transformer/.gitkeep
 
 model/__pycache__
 

@@ -3,6 +3,9 @@ import time
 import json
 import string
 from sentencepiece import SentencePieceProcessor
+from lightning.pytorch.utilities.deepspeed import (
+    convert_zero_checkpoint_to_fp32_state_dict,
+)
 
 punctuations = string.punctuation
 
@@ -17,16 +20,6 @@ def measure_time(start_time=None):
     minutes, seconds = divmod(remainder, 60)
 
     return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
-
-
-def load_configs():
-    with open("./config/preprocess.json", "r") as f:
-        preprocess_config = json.load(f)
-    with open("./config/train.json", "r") as f:
-        train_config = json.load(f)
-    with open("./config/deepspeed.json", "r") as f:
-        deepspeed_config = json.load(f)
-    return preprocess_config, train_config, deepspeed_config
 
 
 def tokenizer(config):
@@ -44,3 +37,24 @@ def vocab(config):
 def rev_vocab(config):
     rev_vocab = json.load(open(f"{config['vocab_dir']}/rev_vocab.json", "r"))
     return rev_vocab
+
+
+def load_checkpoint(checkpoint_version):
+    checkpoint_dir = "/home/shodh/framework/logs/checkpoints"
+    dirs = [
+        d
+        for d in os.listdir(checkpoint_dir)
+        if os.path.isdir(os.path.join(checkpoint_dir, d))
+    ]
+    if len(dirs) > 1:
+        dirs.remove("best-checkpoint.ckpt")
+        best_checkpoint = max(dirs)
+    else:
+        best_checkpoint = dirs[0]
+    if checkpoint_version:
+        best_checkpoint = checkpoint_version
+
+    input_path = os.path.join(checkpoint_dir, best_checkpoint)
+    output_path = os.path.join(checkpoint_dir, "best-checkpoint-fp32.ckpt")
+    convert_zero_checkpoint_to_fp32_state_dict(input_path, output_path)
+    return output_path
