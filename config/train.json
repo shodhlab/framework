@@ -1,5 +1,5 @@
 {
-  "batch_size": 512,
+  "batch_size": 32,
   "context_length": 256,
   "embedding_dimension": 128,
   "num_heads": 4,
@@ -12,5 +12,5 @@
   "weight_decay": 0.01,
   "log_steps": 10,
   "gpu_cores": 2,
-  "precision": "bf16-true"
+  "precision": "bf16"
 }

@@ -8,7 +8,7 @@ from model.Loss import ChunkedCrossEntropyLoss, CrossEntropyLoss
 
 
 class Transformer(pl.LightningModule):
-    def __init__(self, config, vocabSize):
+    def __init__(self, config, vocabSize, dtype):
         super().__init__()
         self.config = config
         self.batchSize = config["batch_size"]
@@ -18,9 +18,12 @@ class Transformer(pl.LightningModule):
         self.numLayers = config["num_layers"]
         self.dropout = config["dropout"]
         self.vocabSize = vocabSize
+        self.external_dtype = dtype
 
-        self.inputEmbed = nn.Embedding(self.vocabSize, self.embeddingDim)
-        self.pe = RoPE(self.contextLength, self.embeddingDim)
+        self.inputEmbed = nn.Embedding(
+            self.vocabSize, self.embeddingDim, dtype=self.external_dtype
+        )
+        self.pe = RoPE(self.contextLength, self.embeddingDim, self.external_dtype)
         self.decoder = Decoder(
             self.batchSize,
             self.contextLength,
@@ -28,8 +31,11 @@ class Transformer(pl.LightningModule):
             self.numHeads,
             self.numLayers,
             self.dropout,
+            self.external_dtype,
         )
-        self.linear = nn.Linear(self.embeddingDim, self.vocabSize)
+        self.linear = nn.Linear(
+            self.embeddingDim, self.vocabSize, dtype=self.external_dtype
+        )
 
         self.loss_fn = ChunkedCrossEntropyLoss()
         self.accuracy = torchmetrics.Accuracy(

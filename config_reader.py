@@ -35,6 +35,7 @@ class Config:
 
     def get_dtype(self, precision):
         if precision == "64" or precision == 64 or precision == "64-true":
+            self.deepspeed = None
             return torch.float64
         elif precision == "32" or precision == 32 or precision == "32-true":
             return torch.float32
@@ -43,15 +44,18 @@ class Config:
             or precision == 16
             or precision == "16-true"
             or precision == "16-mixed"
-            or precision == "transformer-engine-float16"
         ):
             return torch.float16
         elif (
-            precision == "bf16-true"
-            or precision == "bf16-mixed"
-            or precision == "bf16"
-            or precision == "transformer-engine"
+            precision == "bf16-true" or precision == "bf16-mixed" or precision == "bf16"
         ):
+            self.deepspeed["bf16"] = {"enabled": True}
             return torch.bfloat16
+        elif precision == "transformer-engine":
+            self.deepspeed = None
+            return torch.bfloat16
+        elif precision == "transformer-engine-float16":
+            self.deepspeed = None
+            return torch.float16
         else:
             raise ValueError(f"Precision {precision} not supported.")
