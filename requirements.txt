@@ -2,5 +2,5 @@ torchmetrics
 pytorch_lightning
 tensorboard
 sentencepiece
-protobuf==3.20.1
+protobuf==3.20.2
 pytest
