@@ -40,9 +40,9 @@ if __name__ == "__main__":
         devices="auto",
         max_epochs=config.train["max_epochs"],
         min_epochs=config.train["min_epochs"],
-        precision="bf16-true",
+        precision="transformer-engine",
         log_every_n_steps=config.train["log_steps"],
-        strategy=strategy,
+        # strategy=strategy,
         logger=logger,
         profiler=profiler,
         callbacks=[lr_monitor, checkpoint],
@@ -54,7 +54,6 @@ if __name__ == "__main__":
 
     print(f"[{measure_time(start_time)}]Initializing model on {trainer.global_rank}...")
     model = Transformer(config.train, dataModule.vocab_size).to(device)
-    model = model.double()
     print(f"[{measure_time(start_time)}]Model initialized on {trainer.global_rank}.")
 
     print(f"[{measure_time(start_time)}]Starting training on {trainer.global_rank}...")
