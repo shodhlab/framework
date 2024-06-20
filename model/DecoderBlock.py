@@ -2,11 +2,19 @@ import torch.nn as nn
 
 from model.FeedForward import FeedForward
 from model.MultiHeadAttention import MultiHeadAttention
-from model.Normalizations import cRMSNorm
+from model.Normalizations import LayerNorm
 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, batchSize, contextLength, embeddingDim, numHeads, dropout):
+    def __init__(
+        self,
+        batchSize,
+        contextLength,
+        embeddingDim,
+        numHeads,
+        dropout,
+        dtype,
+    ):
         super(DecoderBlock, self).__init__()
 
         self.batchSize = batchSize
@@ -14,7 +22,7 @@ class DecoderBlock(nn.Module):
         self.embeddingDim = embeddingDim
         self.numHeads = numHeads
         self.dropout = dropout
-        # self.precision = precision
+        self.dtype = dtype
 
         self.MHA = MultiHeadAttention(
             self.batchSize,
@@ -22,16 +30,16 @@ class DecoderBlock(nn.Module):
             self.embeddingDim,
             self.numHeads,
             self.dropout,
-            # self.precision
+            self.dtype,
         )
         self.FF = FeedForward(
             self.batchSize,
             self.contextLength,
             self.embeddingDim,
             self.dropout,
-            # self.precision
+            self.dtype,
         )
-        self.normalisation = cRMSNorm(self.embeddingDim)
+        self.normalisation = LayerNorm(self.embeddingDim)
 
     def forward(self, x):
         h = self.normalisation(x)

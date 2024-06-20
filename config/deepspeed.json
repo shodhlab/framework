@@ -1,9 +1,6 @@
 {
   "zero_allow_untested_optimizer": true,
   "prescale_gradients": false,
-  "bf16": {
-    "enabled": true
-  },
   "zero_optimization": {
     "stage": 2,
     "contiguous_gradients": false,

@@ -47,7 +47,7 @@ class SiLU(nn.SiLU):
 class GeGLU(nn.Module):
     def __init__(self):
         super(GeGLU, self).__init__()
-        self.GELULayer = GELU()
+        self.GELULayer = nn.GELU()
 
     def forward(self, x):
         return x * self.GELULayer(x)
@@ -56,7 +56,7 @@ class GeGLU(nn.Module):
 class SwiGLU(nn.Module):
     def __init__(self):
         super(SwiGLU, self).__init__()
-        self.SiLULayer = SiLU()
+        self.SiLULayer = nn.SiLU()
 
     def forward(self, x):
         return x * self.SiLULayer(x)
@@ -65,7 +65,7 @@ class SwiGLU(nn.Module):
 class ReGLU(nn.Module):
     def __init__(self):
         super(ReGLU, self).__init__()
-        self.ReLU = ReLU()
+        self.ReLU = nn.ReLU()
 
     def forward(self, x):
         return x * self.ReLU(x)
@@ -74,7 +74,7 @@ class ReGLU(nn.Module):
 class LeGLU(nn.Module):
     def __init__(self):
         super(LeGLU, self).__init__()
-        self.LeakyReLU = LeakyReLU()
+        self.LeakyReLU = nn.LeakyReLU()
 
     def forward(self, x):
         return x * self.LeakyReLU(x)

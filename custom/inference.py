@@ -16,6 +16,7 @@ class Inference:
                 self.checkpoint_path,
                 config=self.config.train,
                 vocabSize=self.config.preprocess["vocab_size"],
+                dtype=self.config.dtype,
             )
             .to(self.config.dtype)
             .to(self.device)
@@ -38,7 +39,7 @@ class Inference:
 
     def get_output(self, x):
         inp = self.pad_sequence(x, self.config.train["context_length"])
-        inp = torch.tensor(inp).unsqueeze(0).to(self.device)
+        inp = torch.tensor(inp, dtype=torch.int64).unsqueeze(0).to(self.device)
         op = self.model.predict_step(inp)
         return op
 

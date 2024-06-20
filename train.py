@@ -25,7 +25,10 @@ if __name__ == "__main__":
         trace_memory=True,
         export_to_chrome=True,
     )
-    strategy = DeepSpeedStrategy(config=config.deepspeed)
+    if config.deepspeed is not None:
+        strategy = DeepSpeedStrategy(config=config.deepspeed)
+    else:
+        strategy = "ddp"
     dataModule = DataModule(config.train, config.preprocess)
     checkpoint = ModelCheckpoint(
         monitor="val_loss",
@@ -40,7 +43,7 @@ if __name__ == "__main__":
         devices="auto",
         max_epochs=config.train["max_epochs"],
         min_epochs=config.train["min_epochs"],
-        precision="bf16-true",
+        precision=config.train["precision"],
         log_every_n_steps=config.train["log_steps"],
         strategy=strategy,
         logger=logger,
@@ -53,8 +56,11 @@ if __name__ == "__main__":
     print(f"[{measure_time(start_time)}]Data loaded on {trainer.global_rank}.")
 
     print(f"[{measure_time(start_time)}]Initializing model on {trainer.global_rank}...")
-    model = Transformer(config.train, dataModule.vocab_size).to(device)
-    model = model.double()
+    model = (
+        Transformer(config.train, dataModule.vocab_size, config.dtype)
+        .to(device)
+        .to(config.dtype)
+    )
     print(f"[{measure_time(start_time)}]Model initialized on {trainer.global_rank}.")
 
     print(f"[{measure_time(start_time)}]Starting training on {trainer.global_rank}...")

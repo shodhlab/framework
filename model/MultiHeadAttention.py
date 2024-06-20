@@ -5,7 +5,9 @@ from model.Attention import scaledDotProductAttention
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, batchSize, contextLength, embeddingDim, numHeads, dropout): #here
+    def __init__(
+        self, batchSize, contextLength, embeddingDim, numHeads, dropout, dtype
+    ):
         super(MultiHeadAttention, self).__init__()
 
         assert embeddingDim % numHeads == 0
@@ -14,17 +16,19 @@ class MultiHeadAttention(nn.Module):
         self.embeddingDim = embeddingDim
         self.numHeads = numHeads
         self.dropout = dropout
+        self.dtype = dtype
 
         self.headDim = embeddingDim // numHeads
         self.mask = torch.triu(torch.ones(contextLength, contextLength), diagonal=1)
         self.mask = self.mask.masked_fill(self.mask == 1, float(-1e9))
+        self.mask = self.mask.to(self.dtype)
 
-        self.Wq = nn.Linear(embeddingDim, embeddingDim, bias=False)
-        self.Wk = nn.Linear(embeddingDim, embeddingDim, bias=False)
-        self.Wv = nn.Linear(embeddingDim, embeddingDim, bias=False)
-        self.Wo = nn.Linear(embeddingDim, embeddingDim, bias=False)
+        self.Wq = nn.Linear(embeddingDim, embeddingDim, bias=False, dtype=self.dtype)
+        self.Wk = nn.Linear(embeddingDim, embeddingDim, bias=False, dtype=self.dtype)
+        self.Wv = nn.Linear(embeddingDim, embeddingDim, bias=False, dtype=self.dtype)
+        self.Wo = nn.Linear(embeddingDim, embeddingDim, bias=False, dtype=self.dtype)
         self.attention = scaledDotProductAttention(
-            contextLength, self.headDim, self.dropout
+            contextLength, self.headDim, self.dropout, self.dtype
         )
 
     def splitHeads(self, x):

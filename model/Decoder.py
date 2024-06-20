@@ -5,7 +5,14 @@ from model.DecoderBlock import DecoderBlock
 
 class Decoder(nn.Module):
     def __init__(
-        self, batchSize, contextLength, embeddingDim, numHeads, numLayers, dropout #here
+        self,
+        batchSize,
+        contextLength,
+        embeddingDim,
+        numHeads,
+        numLayers,
+        dropout,
+        dtype,
     ):
         super(Decoder, self).__init__()
 
@@ -15,7 +22,7 @@ class Decoder(nn.Module):
         self.numHeads = numHeads
         self.numLayers = numLayers
         self.dropout = dropout
-
+        self.dtype = dtype
 
         self.decoderBlocks = nn.ModuleList(
             [
@@ -24,7 +31,8 @@ class Decoder(nn.Module):
                     self.contextLength,
                     self.embeddingDim,
                     self.numHeads,
-                    self.dropout
+                    self.dropout,
+                    self.dtype,
                 )
                 for _ in range(self.numLayers)
             ]
