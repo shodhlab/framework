@@ -93,7 +93,7 @@ class Transformer(pl.LightningModule):
         x, y = batch
         output = self.forward(x)
         y_full = torch.cat([x,y.unsqueeze(-1)],dim=-1)[:,1:]
-        loss = self.loss_fn(output, y_full)
+        loss = self.loss_fn(output.reshape(output.shape[0]*output.shape[1], 32_000), y_full)
         self.log("loss", loss, prog_bar=True, sync_dist=True)
         return loss
 
@@ -101,7 +101,7 @@ class Transformer(pl.LightningModule):
         x, y = batch
         output = self.forward(x)
         y_full = torch.cat([x,y.unsqueeze(-1)],dim=-1)[:,1:]
-        loss = self.loss_fn(output, y_full)
+        loss = self.loss_fn(output.reshape(output.shape[0]*output.shape[1], 32_000), y_full)
         accuracy = self.accuracy(output[:,-1,:], y)
         dict_log = {
             "val_loss": loss,
@@ -114,7 +114,7 @@ class Transformer(pl.LightningModule):
         x, y = batch
         output = self.forward(x)
         y_full = torch.cat([x,y.unsqueeze(-1)],dim=-1)[:,1:]
-        loss = self.loss_fn(output, y_full)
+        loss = self.loss_fn(output.reshape(output.shape[0]*output.shape[1], 32_000), y_full)
         accuracy = self.accuracy(output[:,-1, :], y)
         f1_score = self.f1_score(output[:,-1, :], y)
         precision = self.precision(output[:,-1, :], y)

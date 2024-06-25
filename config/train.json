@@ -1,9 +1,9 @@
 {
-  "batch_size": 64, 
+  "batch_size": 200, 
   "context_length": 256,  
-  "embedding_dimension": 512,  
-  "num_heads": 8, 
-  "num_layers": 6, 
+  "embedding_dimension": 128,  
+  "num_heads": 4, 
+  "num_layers": 2, 
   "dropout": 0.1, 
   
   

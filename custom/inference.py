@@ -3,7 +3,6 @@ import torch
 from utils.misc import load_checkpoint
 from sentencepiece import SentencePieceProcessor
 
-
 class Inference:
     def __init__(self, modelClass, config, checkpoint_path=None):
         self.modelClass = modelClass
@@ -15,6 +14,7 @@ class Inference:
             self.modelClass.load_from_checkpoint(
                 self.checkpoint_path,
                 config=self.config.train,
+                # Ensure these parameters are correct
                 vocabSize=self.config.preprocess["vocab_size"],
                 dtype=self.config.dtype,
             )
@@ -30,17 +30,16 @@ class Inference:
 
     def pad_sequence(self, x, max_length):
         if len(x) < max_length:
-            x = x + [self.tokenizer.pad_id()] * (max_length - len(x))
+            x = [self.tokenizer.pad_id()] * (max_length - len(x)) + x
         if len(x) > max_length:
-            x = x[max_length - 1 :]
-        else:
-            x = x
+            x = x[:max_length]  # Fix the slicing to take the first max_length elements
         return x
 
     def get_output(self, x):
         inp = self.pad_sequence(x, self.config.train["context_length"])
         inp = torch.tensor(inp, dtype=torch.int64).unsqueeze(0).to(self.device)
-        op = self.model.predict_step(inp)
+        with torch.no_grad():  # Ensure no gradient computation
+            op = self.model.predict_step(inp)
         return op
 
     def test(self):
@@ -50,7 +49,8 @@ class Inference:
             (self.config.train["batch_size"], self.config.train["context_length"]),
         ).to(self.device)
         print(x.shape)
-        op = self.model.predict_step(x)
+        with torch.no_grad():  # Ensure no gradient computation
+            op = self.model.predict_step(x)
         print(op.shape)
 
     def infer(self, text, max_length):
@@ -59,9 +59,10 @@ class Inference:
         for _ in range(max_length):
             op = self.get_output(x)
             op = torch.argmax(op, dim=-1)
-            op = op.squeeze().tolist()[0]
+            op = op.squeeze().tolist()[-1]
             x.append(op)
             outputs.append(op)
             if op == self.tokenizer.eos_id():
                 break
         return self.tokenizer.decode(outputs)
+
