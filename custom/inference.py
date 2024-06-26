@@ -58,6 +58,11 @@ class Inference:
         outputs = []
         for _ in range(max_length):
             op = self.get_output(x)
+
+            # idx = torch.topk(op[:,-1,:],k=10,dim=-1,largest=True,sorted=True)[1]
+            # select = torch.randint(low=0,high=idx.shape[-1],size=(1,))
+            # op = int(idx[0][select].cpu().numpy()[0])
+            # print(op)
             op = torch.argmax(op, dim=-1)
             op = op.squeeze().tolist()[-1]
             x.append(op)
