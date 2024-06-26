@@ -12,6 +12,10 @@ def dataset_creation(tokens, config, seq_len):
         temp = temp[1:]
         temp = torch.cat((temp, torch.tensor([tokens[i]], dtype=torch.int64)))
 
+
+    # print(x)
+    # print(y)
+    # exit()
     x = torch.stack(x).to(torch.int64)
     y = torch.tensor(y).to(torch.int64)
     data_dir = config["data_dir"]

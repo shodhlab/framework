@@ -40,7 +40,7 @@ def rev_vocab(config):
 
 
 def load_checkpoint(checkpoint_version):
-    checkpoint_dir = "/home/shodh/framework/logs/checkpoints"
+    checkpoint_dir = "./logs/checkpoints"
     dirs = [
         d
         for d in os.listdir(checkpoint_dir)

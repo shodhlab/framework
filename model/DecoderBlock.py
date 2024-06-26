@@ -39,13 +39,14 @@ class DecoderBlock(nn.Module):
             self.dropout,
             self.dtype,
         )
-        self.normalisation = LayerNorm(self.embeddingDim)
+        self.normalisation_mha = LayerNorm(self.embeddingDim)
+        self.normalisation_ffn = LayerNorm(self.embeddingDim)
 
     def forward(self, x):
-        h = self.normalisation(x)
+        h = self.normalisation_mha(x)
         h = self.MHA(h)
         x = x + h
-        h = self.normalisation(x)
+        h = self.normalisation_ffn(x)
         h = self.FF(h)
         x = x + h
         return x

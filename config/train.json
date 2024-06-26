@@ -1,16 +1,23 @@
 {
-  "batch_size": 32,
-  "context_length": 256,
-  "embedding_dimension": 128,
-  "num_heads": 4,
-  "num_layers": 2,
-  "dropout": 0.1,
+  "batch_size": 200, 
+  "context_length": 256,  
+  "embedding_dimension": 128,  
+  "num_heads": 4, 
+  "num_layers": 2, 
+  "dropout": 0.1, 
+  
+  
+  "lr": 0.001,  
+  "T_0": 7, 
+  "T_mult": 2,  
+  "eta_min": 1e-6,  
+  "decay": 0.75, 
+
 
   "min_epochs": 1,
-  "max_epochs": 5,
-  "lr": 0.0001,
+  "max_epochs": 100,
   "weight_decay": 0.01,
   "log_steps": 10,
-  "gpu_cores": 2,
+  "gpu_cores": 1,
   "precision": "bf16"
 }

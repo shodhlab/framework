@@ -5,4 +5,4 @@ from custom.inference import Inference
 
 config = Config()
 inference_engine = Inference(Transformer, config)
-inference_engine.infer("first citizen :", 100)
+print(inference_engine.infer("MENENIUS:\nEither you must", 100))
