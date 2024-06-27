@@ -2,6 +2,8 @@ import torch
 import torchmetrics
 import torch.nn as nn
 import pytorch_lightning as pl
+import torchmetrics.text
+import torchmetrics.text.perplexity
 from model.Decoder import Decoder
 from model.PositionalEncoding import Learned, RoPE, Cosine
 from model.Loss import ChunkedCrossEntropyLoss, CrossEntropyLoss
@@ -71,16 +73,17 @@ class Transformer(pl.LightningModule):
         )
 
         self.loss_fn = ChunkedCrossEntropyLoss()
-        self.accuracy = torchmetrics.Accuracy(
-            task="multiclass", num_classes=self.vocabSize
-        )
-        self.f1_score = torchmetrics.F1Score(
-            task="multiclass", num_classes=self.vocabSize
-        )
-        self.precision = torchmetrics.Precision(
-            task="multiclass", num_classes=self.vocabSize
-        )
-        self.recall = torchmetrics.Recall(task="multiclass", num_classes=self.vocabSize)
+        # self.accuracy = torchmetrics.Accuracy(
+        #     task="multiclass", num_classes=self.vocabSize
+        # )
+        # self.f1_score = torchmetrics.F1Score(
+        #     task="multiclass", num_classes=self.vocabSize
+        # )
+        # self.precision = torchmetrics.Precision(
+        #     task="multiclass", num_classes=self.vocabSize
+        # )
+        # self.recall = torchmetrics.Recall(task="multiclass", num_classes=self.vocabSize)
+        self.ppl = torchmetrics.text.Perplexity()
 
     def forward(self, x):
         x = self.inputEmbed(x)
@@ -90,41 +93,44 @@ class Transformer(pl.LightningModule):
         return x
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
+        x = batch[:,:self.contextLength]
+        y = batch[:,1:]
         output = self.forward(x)
-        y_full = torch.cat([x,y.unsqueeze(-1)],dim=-1)[:,1:]
-        loss = self.loss_fn(output.reshape(output.shape[0]*output.shape[1], 32_000), y_full)
+        loss = self.loss_fn(output.reshape(output.shape[0]*output.shape[1], self.vocabSize), y)
         self.log("loss", loss, prog_bar=True, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
+        x = batch[:,:self.contextLength]
+        y = batch[:,1:]
         output = self.forward(x)
-        y_full = torch.cat([x,y.unsqueeze(-1)],dim=-1)[:,1:]
-        loss = self.loss_fn(output.reshape(output.shape[0]*output.shape[1], 32_000), y_full)
-        accuracy = self.accuracy(output[:,-1,:], y)
+        loss = self.loss_fn(output.reshape(output.shape[0]*output.shape[1], self.vocabSize), y)
+        # accuracy = self.accuracy(output[:,-1,:], y[:,-1])
+        val_ppl = self.ppl(output,y)
         dict_log = {
             "val_loss": loss,
-            "val_accuracy": accuracy
+            "val_ppl": val_ppl,
         }
         self.log_dict(dict_log, sync_dist=True)
         return loss
 
     def test_step(self, batch, batch_idx):
-        x, y = batch
+        x = batch[:,:self.contextLength]
+        y = batch[:,1:]
         output = self.forward(x)
-        y_full = torch.cat([x,y.unsqueeze(-1)],dim=-1)[:,1:]
-        loss = self.loss_fn(output.reshape(output.shape[0]*output.shape[1], 32_000), y_full)
-        accuracy = self.accuracy(output[:,-1, :], y)
-        f1_score = self.f1_score(output[:,-1, :], y)
-        precision = self.precision(output[:,-1, :], y)
-        recall = self.recall(output[:,-1, :], y)
+        loss = self.loss_fn(output.reshape(output.shape[0]*output.shape[1], self.vocabSize), y)
+        test_ppl = self.ppl(output,y)
+        # accuracy = self.accuracy(output[:,-1, :], y[:,-1])
+        # f1_score = self.f1_score(output[:,-1, :], y[:,-1])
+        # precision = self.precision(output[:,-1, :], y[:,-1])
+        # recall = self.recall(output[:,-1, :], y[:,-1])
         dict_log = {
             "test_loss": loss,
-            "test_accuracy": accuracy,
-            "test_f1_score": f1_score,
-            "test_precision": precision,
-            "test_recall": recall,
+            "test_ppl": test_ppl,
+            # "test_accuracy": accuracy,
+            # "test_f1_score": f1_score,
+            # "test_precision": precision,
+            # "test_recall": recall,
         }
         self.log_dict(dict_log, sync_dist=True)
         return loss
@@ -134,22 +140,6 @@ class Transformer(pl.LightningModule):
             output = self.forward(x)
         # output = nn.Softmax(dim=2)(output)
         return output
-
-    # def configure_optimizers(self):
-    #     optimizer = torch.optim.Adam(
-    #         self.parameters(),
-    #         lr=self.config["lr"],
-    #         weight_decay=self.config["weight_decay"],
-    #     )
-    #     lr_scheduler = {
-    #         "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #             optimizer, mode="min", patience=3, factor=0.5, min_lr=1e-6
-    #         ),
-    #         "monitor": "val_loss",
-    #         "name": "lr_scheduler",
-    #     }
-    #     return [optimizer], [lr_scheduler]
-
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -165,6 +155,6 @@ class Transformer(pl.LightningModule):
                 eta_min=self.config["eta_min"], 
                 decay=self.config["decay"]
             ),
-            "name": "lr_scheduler",
+            "name": "lr_scheduler",  "interval": "step"
         }
         return [optimizer], [lr_scheduler]

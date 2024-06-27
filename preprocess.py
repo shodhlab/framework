@@ -1,8 +1,25 @@
-import torch
 import pytorch_lightning as pl
 import torch.utils.data as data
+import data.prepare_dataset_utils.packed_dataset as packed_dataset
+import glob
+import os
+import random
 
-from utils import preprocess
+def de_binarize(filenames,n_chunks = 1, block_size=256):
+    return packed_dataset.PackedDataset(filenames,n_chunks,block_size,seed=12345, shuffle=False)
+ 
+
+# if __name__ == "__main__":
+    
+#     parser= argparse.ArgumentParser()
+#     parser.add_argument("--src_path",type=str)
+#     args = parser.parse_args()
+#     src_path = Path (args.src_path)
+#     filenames = glob.glob(os.path.join(src_path, '**', '*.bin'), recursive=True)
+#     print(filenames)
+#     # filenames = ["dataset_out/bigger_0000000000.bin","dataset_out/bigger_0000000001.bin","dataset_out/bigger_0000000002.bin","dataset_out/bigger_0000000003.bin"]
+#     de_binarize(filenames)
+    
 
 
 class DataModule(pl.LightningDataModule):
@@ -12,34 +29,28 @@ class DataModule(pl.LightningDataModule):
         self.preprocess_config = preprocess_config
 
     def setup(self, stage: str = None):
-        self.data = preprocess(
-            self.preprocess_config, self.train_config["context_length"]
-        )
-        self.vocab_size = self.preprocess_config["vocab_size"]
-        self.dataset = data.TensorDataset(self.data[0], self.data[1])
+        filenames = glob.glob(os.path.join(self.train_config["bin_path"], '**', '*.bin'), recursive=True)
+
         self.val_frac = self.preprocess_config["val_percent"] / 100
         self.test_frac = self.preprocess_config["test_percent"] / 100
-        self.val_len = int(self.val_frac * len(self.dataset))
-        self.test_len = int(self.test_frac * len(self.dataset))
-        self.train_len = len(self.dataset) - self.val_len - self.test_len
+        L = len(filenames)
+        random.shuffle(filenames)
 
-        self.train, self.val, self.test = data.random_split(
-            self.dataset,
-            [
-                self.train_len,
-                self.val_len,
-                self.test_len,
-            ],
-            generator=torch.Generator().manual_seed(
-                self.preprocess_config["random_state"]
-            ),
-        )
+        Test_Filenames = filenames[:int(L*self.test_frac)]
+        Val_Filenames = filenames[int(L*self.test_frac):int(L*self.test_frac)+int(L*self.val_frac)]
+        Train_Filenames = filenames[int(L*self.test_frac)+int(L*self.val_frac):]
+
+        self.train = de_binarize(Train_Filenames,1,self.train_config["context_length"]+1)
+        self.val = de_binarize(Val_Filenames,1,self.train_config["context_length"]+1)
+        self.test = de_binarize(Test_Filenames,1,self.train_config["context_length"]+1)
+        self.vocab_size = self.preprocess_config["vocab_size"]
+
 
     def train_dataloader(self):
         return data.DataLoader(
             self.train,
             batch_size=self.train_config["batch_size"],
-            shuffle=True,
+            shuffle=False,
             num_workers=4,
         )
 
