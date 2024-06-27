@@ -3,13 +3,14 @@ from model import Transformer
 from config_reader import Config
 from preprocess import DataModule
 from utils.misc import measure_time
-
+import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.profilers import PyTorchProfiler
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
+
 
 if __name__ == "__main__":
     torch.set_float32_matmul_precision("high")
@@ -41,7 +42,9 @@ if __name__ == "__main__":
     trainer = Trainer(
         accelerator="auto",
         devices="auto",
-        max_epochs=config.train["max_epochs"],
+        max_epochs=1,
+        max_steps=config.train["max_iterations"],
+        val_check_interval=config.train["eval_every"],
         min_epochs=config.train["min_epochs"],
         precision=config.train["precision"],
         log_every_n_steps=config.train["log_steps"],
